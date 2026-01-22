@@ -3,7 +3,7 @@ def get_us_yield(lookback):
   from fredapi import Fred
   import pandas as pd
 
-  fred = Fred(api_key='f6c7b45610d142d607396b4207eb091a')
+  fred = Fred(api_key=api_key)
 
   us_yields = {
       "US3M": "DTB3",
