@@ -1,4 +1,5 @@
 import streamlit as st
+from data import get_recent_releases
 from plots import us_treasury_plots
 
 def check_password():
@@ -37,3 +38,11 @@ if check_password():
 
     st.plotly_chart(fig_ts)
     st.plotly_chart(fig_curve)
+
+    st.sidebar.header("Recent Economic Releases")
+    recent_news = get_recent_releases()
+
+    for index, row in recent_news.iterrows():
+        st.sidebar.write(f"**{row['name']}**")
+        st.sidebar.caption(f"Released on: {row['press_release_date']}")
+        st.sidebar.divider()
