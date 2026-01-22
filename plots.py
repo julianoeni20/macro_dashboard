@@ -1,5 +1,6 @@
 from data import get_us_yield
 import plotly.express as px
+import plotly.graph_objects as go
 
 def us_treasury_plots():
     import pandas as pd
@@ -52,3 +53,74 @@ def us_treasury_plots():
 
     # Return both figures as a tuple
     return fig_ts, fig_curve
+
+def credit_spread_plots(df):
+    """
+    Plots US Corporate Credit Spreads (OAS) in Basis Points (bps) with dual Y-axes.
+    """
+    if df.empty:
+        return go.Figure()
+
+    # Create a local copy and convert to Basis Points (x 100)
+    # We use .copy() to avoid modifying the cached dataframe in memory
+    df_bps = df.copy() * 100
+
+    fig = go.Figure()
+
+    # Define colors
+    colors = {
+        "High Yield (Junk)": "#d62728",     # Red
+        "BBB Corp (Inv. Grade)": "#ff7f0e", # Orange
+        "AAA Corp (Prime)": "#2ca02c"       # Green
+    }
+
+    for column in df_bps.columns:
+        # Assign traces to different Y-axes
+        if column == "High Yield (Junk)":
+            yaxis_assignment = "y1" # Primary Y-axis (Left)
+        else:
+            yaxis_assignment = "y2" # Secondary Y-axis (Right)
+
+        fig.add_trace(go.Scatter(
+            x=df_bps.index,
+            y=df_bps[column],
+            mode='lines',
+            name=column,
+            line=dict(width=2, color=colors.get(column, "blue")),
+            yaxis=yaxis_assignment
+        ))
+
+    # Update layout with BPS titles
+    fig.update_layout(
+        title="US Corporate Credit Spreads (OAS)",
+        xaxis_title="Date",
+        
+        # Left Axis (High Yield)
+        yaxis=dict(
+            title="High Yield Spread (bps)", # <--- Changed to bps
+            titlefont=dict(color="#d62728"),
+            tickfont=dict(color="#d62728")
+        ),
+        
+        # Right Axis (IG / Prime)
+        yaxis2=dict(
+            title="Inv. Grade / Prime Spread (bps)", # <--- Changed to bps
+            titlefont=dict(color="#ff7f0e"),
+            tickfont=dict(color="#ff7f0e"),
+            overlaying="y",
+            side="right"
+        ),
+        
+        template="plotly_white",
+        hovermode="x unified",
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        margin=dict(l=20, r=20, t=50, b=20),
+        height=500
+    )
+    
+    return fig

@@ -1,9 +1,23 @@
 import streamlit as st
-from data import get_recent_releases
-from plots import us_treasury_plots
+import pandas as pd
 
+# Local Imports
+# Ensure you import get_us_credit from data
+from data import get_upcoming_releases, get_us_credit
+from plots import us_treasury_plots, credit_spread_plots
+
+# --- 1. PAGE CONFIGURATION ---
+st.set_page_config(
+    page_title="FBU Macro Dashboard",
+    page_icon="📈",
+    layout="wide"
+)
+
+# --- 2. AUTHENTICATION ---
 def check_password():
-    """Returns `True` if the user had the correct password."""
+    """
+    Simple password protection.
+    """
     def password_entered():
         if st.session_state["password"] == st.secrets["PASSWORD"]:
             st.session_state["password_correct"] = True
@@ -12,37 +26,137 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        # First run, show input for password
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         return False
     elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         st.error("😕 Password incorrect")
         return False
     else:
-        # Password correct
         return True
 
-if check_password():
+# --- 3. UI RENDER FUNCTIONS ---
 
-    if st.sidebar.button('Logout'):
-        st.session_state["password_correct"] = False
-        st.cache_data.clear()
-        st.rerun()
-    
-    st.title("FBU Macro Dashboard")
+def render_sidebar():
+    """
+    Renders the sidebar controls and returns user settings.
+    """
+    with st.sidebar:
+        st.header("⚙️ Settings")
+        
+        # Logout
+        if st.button('🔒 Logout', use_container_width=True):
+            st.session_state["password_correct"] = False
+            st.cache_data.clear()
+            st.rerun()
+            
+        st.divider()
+        
+        # Calendar Controls
+        st.subheader("Calendar Options")
+        days_ahead = st.slider("Days Look Ahead", 1, 60, 14)
+        show_important = st.toggle("High Impact Only", value=True)
+        
+    return days_ahead, show_important
 
-    with st.spinner("Fetching latest market data..."):
-        fig_ts, fig_curve = us_treasury_plots()
+def render_treasury_section():
+    """
+    Renders the US Treasury Yields section.
+    """
+    st.subheader("🇺🇸 US Treasury Yields")
+    with st.spinner("Fetching Treasury data..."):
+        try:
+            fig_ts, fig_curve = us_treasury_plots()
+            
+            # Use columns to display charts side-by-side if space permits
+            col1, col2 = st.columns(2)
+            with col1:
+                st.plotly_chart(fig_ts, use_container_width=True)
+            with col2:
+                st.plotly_chart(fig_curve, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error loading Treasury data: {e}")
 
-    st.plotly_chart(fig_ts)
-    st.plotly_chart(fig_curve)
+def render_credit_section():
+    """
+    Renders the Credit Spreads section.
+    """
+    st.subheader("🏦 Corporate Credit Spreads (OAS)")
+    with st.spinner("Fetching Credit data..."):
+        try:
+            # 1. Fetch Data (Defaults to 1500 days lookback)
+            df_credit = get_us_credit()
+            
+            if not df_credit.empty:
+                # 2. Plot Data
+                fig = credit_spread_plots(df_credit)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # 3. Optional: Raw Data Expander
+                with st.expander("View Raw Credit Data"):
+                    st.dataframe(df_credit.sort_index(ascending=False).head(50), use_container_width=True)
+            else:
+                st.warning("No credit data available.")
+        except Exception as e:
+            st.error(f"Error loading Credit data: {e}")
 
-    st.sidebar.header("Recent Economic Releases")
-    recent_news = get_recent_releases()
+def render_calendar_section(days_ahead, show_important):
+    """
+    Renders the Economic Calendar.
+    """
+    st.divider()
+    st.subheader(f"📅 Upcoming Economic Releases (Next {days_ahead} Days)")
 
-    for index, row in recent_news.iterrows():
-        st.sidebar.write(f"**{row['name']}**")
-        st.sidebar.caption(f"Released on: {row['press_release_date']}")
-        st.sidebar.divider()
+    try:
+        fred_key = st.secrets["fredapikey"]
+        
+        # Fetch Data
+        df_releases = get_upcoming_releases(fred_key, days_ahead=days_ahead, only_important=show_important)
+
+        if not df_releases.empty:
+            st.dataframe(
+                df_releases,
+                column_config={
+                    "date": st.column_config.DateColumn("Date", format="MM-DD-YYYY"),
+                    "release_name": "Event / Indicator",
+                    "release_id": "Series ID"
+                },
+                hide_index=True,
+                use_container_width=True,
+                height=400 # Fixed height prevents vibration
+            )
+        else:
+            if show_important:
+                st.info("No 'High Impact' releases found. Try turning off the filter in the sidebar.")
+            else:
+                st.info("No releases found.")
+
+    except KeyError:
+        st.error("⚠️ FRED API Key not found in secrets.")
+    except Exception as e:
+        st.error(f"Calendar Error: {e}")
+
+# --- 4. MAIN APP LOGIC ---
+
+def main():
+    if check_password():
+        # A. Render Sidebar & Get Settings
+        days_ahead, show_important = render_sidebar()
+
+        # B. Header
+        st.title("FBU Macro Dashboard")
+
+        # C. Market Data Tabs (Clean layout)
+        tab_rates, tab_credit = st.tabs(["Yields & Curve", "Credit Spreads"])
+
+        with tab_rates:
+            render_treasury_section()
+        
+        with tab_credit:
+            render_credit_section()
+
+        # D. Economic Calendar
+        render_calendar_section(days_ahead, show_important)
+
+if __name__ == "__main__":
+    main()
