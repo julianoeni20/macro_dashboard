@@ -4,6 +4,7 @@ import requests
 import streamlit as st
 from datetime import date, timedelta
 from fredapi import Fred
+import yfinance as yf
 ssl._create_default_https_context = ssl._create_unverified_context
 
 @st.cache_data(ttl=3600)
@@ -120,3 +121,17 @@ def get_us_credit(lookback=1500):
     except Exception as e:
         st.error(f"Error fetching credit data: {e}")
         return pd.DataFrame()
+    
+def get_earnings_dates():
+
+    calendars = yf.Calendars()
+    start_date = date.today()
+    end_date = start_date + timedelta(days=7)
+
+    df = calendars.get_earnings_calendar(market_cap=300000000, limit=100, start=start_date, end=end_date)
+    df = df.reset_index()
+    df['Earnings Date'] = pd.to_datetime(df['Event Start Date']).dt.date
+
+    return df[['Symbol', 'Company', 'Event Name', 'Earnings Date', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']]
+
+

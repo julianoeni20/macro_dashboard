@@ -3,7 +3,7 @@ import pandas as pd
 
 # Local Imports
 # Ensure you import get_us_credit from data
-from data import get_upcoming_releases, get_us_credit
+from data import get_upcoming_releases, get_us_credit, get_earnings_dates
 from plots import us_treasury_plots, credit_spread_plots
 
 # --- 1. PAGE CONFIGURATION ---
@@ -58,6 +58,25 @@ def render_sidebar():
         show_important = st.toggle("High Impact Only", value=True)
         
     return days_ahead, show_important
+
+def render_earnings_section():
+    """
+    Renders the Corporate Earnings section.
+    """
+    st.subheader("💰 Corporate Earnings Watchlist")
+    
+    with st.spinner(f"Fetching earnings..."):
+        df_earnings = get_earnings_dates()
+        
+        if not df_earnings.empty:
+            st.dataframe(
+                df_earnings,
+                hide_index=False,
+                use_container_width=True,
+                height=400
+            )
+        else:
+            st.info("Could not fetch earnings dates. Markets might be closed or API limited.")
 
 def render_treasury_section():
     """
@@ -157,6 +176,9 @@ def main():
 
         # D. Economic Calendar
         render_calendar_section(days_ahead, show_important)
+
+        # E. Earnings Section (Optional)
+        render_earnings_section()
 
 if __name__ == "__main__":
     main()
