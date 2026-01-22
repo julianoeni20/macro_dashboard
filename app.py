@@ -59,47 +59,24 @@ def render_sidebar():
         
     return days_ahead, show_important
 
-def render_earnings_tab(days_ahead, show_important):
+def render_earnings_section():
     """
-    Renders Earnings with a manual Refresh button to prevent Rate Limiting.
+    Renders the Corporate Earnings section.
     """
-    st.subheader(f"💰 Major Earnings Releases (Next {days_ahead} Days)")
+    st.subheader("💰 Corporate Earnings Watchlist")
     
-    # 1. Initialize Session State for Earnings if it doesn't exist
-    if "earnings_data" not in st.session_state:
-        st.session_state["earnings_data"] = None
-
-    # 2. Add a specific "Refresh" button for this section
-    # The help tooltip explains why this button exists
-    if st.button("🔄 Load / Refresh Earnings Data", help="Click to fetch latest data from Yahoo Finance"):
-        with st.spinner("Fetching data from Yahoo Finance..."):
-            # Clear old cache to force a fresh pull if the user asked for it
-            get_earnings_dates.clear()
-            # Fetch new data
-            st.session_state["earnings_data"] = get_earnings_dates()
-    
-    # 3. Display Data (Only if it exists in session state)
-    if st.session_state["earnings_data"] is not None:
-        df = st.session_state["earnings_data"]
+    with st.spinner(f"Fetching earnings..."):
+        df_earnings = get_earnings_dates()
         
-        if not df.empty:
+        if not df_earnings.empty:
             st.dataframe(
-                df,
-                column_config={
-                    "Symbol": "Ticker",
-                    "Earnings Date": st.column_config.DateColumn("Date", format="MM-DD-YYYY"),
-                    "EPS Estimate": st.column_config.NumberColumn("Est. EPS", format="$%.2f"),
-                    "Reported EPS": st.column_config.NumberColumn("Actual EPS", format="$%.2f")
-                },
-                hide_index=True,
+                df_earnings,
+                hide_index=False,
                 use_container_width=True,
-                height=500
+                height=400
             )
         else:
-            st.info("No earnings found for the coming week.")
-    else:
-        # Initial state before user clicks button
-        st.info("⚠️ Click the 'Load / Refresh' button above to check for earnings. (Data is not loaded automatically to save API limits).")
+            st.info("Could not fetch earnings dates. Markets might be closed or API limited.")
 
 def render_treasury_section():
     """
