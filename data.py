@@ -15,6 +15,7 @@ def get_us_yield(lookback):
     fred = Fred(api_key=fred_key)
 
     us_yields = {
+        "US1M": "DTB1",
         "US3M": "DTB3",
         "US1Y": "DGS1",
         "US2Y": "DGS2",

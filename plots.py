@@ -15,6 +15,7 @@ def us_treasury_plots():
 
     # --- CHART 2: Yield Curve Evolution ---
     tenor_map = {
+        "US1M": 1/12,
         "US3M": 0.25, "US1Y": 1.0, "US2Y": 2.0, 
         "US5Y": 5.0, "US10Y": 10.0, "US20Y": 20.0
     }
