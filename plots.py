@@ -98,14 +98,12 @@ def credit_spread_plots(df):
         # Left Axis (High Yield)
         yaxis=dict(
             title="High Yield Spread (bps)", # <--- Changed to bps
-            titlefont=dict(color="#d62728"),
             tickfont=dict(color="#d62728")
         ),
         
         # Right Axis (IG / Prime)
         yaxis2=dict(
             title="Inv. Grade / Prime Spread (bps)", # <--- Changed to bps
-            titlefont=dict(color="#ff7f0e"),
             tickfont=dict(color="#ff7f0e"),
             overlaying="y",
             side="right"
