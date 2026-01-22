@@ -24,6 +24,11 @@ def check_password():
         return True
 
 if check_password():
+
+    if st.sidebar.button('Logout'):
+        st.session_state["password_correct"] = False
+        st.cache_data.clear()
+        st.rerun()
     
     st.title("FBU Macro Dashboard")
 
