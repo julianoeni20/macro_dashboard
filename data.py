@@ -131,6 +131,7 @@ def get_earnings_dates():
     df = calendars.get_earnings_calendar(market_cap=300000000, limit=100, start=start_date, end=end_date)
     df = df.reset_index()
     df['Earnings Date'] = pd.to_datetime(df['Event Start Date']).dt.date
+    df = df.sort_values('Earnings Date')
 
     return df[['Symbol', 'Company', 'Event Name', 'Earnings Date', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']]
 
