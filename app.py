@@ -4,7 +4,7 @@ import pandas as pd
 # Local Imports
 # Ensure you import get_us_credit from data
 from data import get_upcoming_releases, get_us_credit, get_earnings_dates
-from plots import us_treasury_plots, credit_spread_plots
+from plots import us_treasury_plots, credit_spread_plots, plot_ff
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(
@@ -45,7 +45,7 @@ def render_sidebar():
         st.header("⚙️ Settings")
         
         # Logout
-        if st.button('🔒 Logout', use_container_width=True):
+        if st.button('🔒 Logout', width="stretch"):
             st.session_state["password_correct"] = False
             st.cache_data.clear()
             st.rerun()
@@ -72,7 +72,7 @@ def render_earnings_section():
             st.dataframe(
                 df_earnings,
                 hide_index=False,
-                use_container_width=True,
+                width="stretch",
                 height=400
             )
         else:
@@ -90,9 +90,9 @@ def render_treasury_section():
             # Use columns to display charts side-by-side if space permits
             col1, col2 = st.columns(2)
             with col1:
-                st.plotly_chart(fig_ts, use_container_width=True)
+                st.plotly_chart(fig_ts, width="stretch")
             with col2:
-                st.plotly_chart(fig_curve, use_container_width=True)
+                st.plotly_chart(fig_curve, width="stretch")
         except Exception as e:
             st.error(f"Error loading Treasury data: {e}")
 
@@ -109,15 +109,27 @@ def render_credit_section():
             if not df_credit.empty:
                 # 2. Plot Data
                 fig = credit_spread_plots(df_credit)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
                 
                 # 3. Optional: Raw Data Expander
                 with st.expander("View Raw Credit Data"):
-                    st.dataframe(df_credit.sort_index(ascending=False).head(50), use_container_width=True)
+                    st.dataframe(df_credit.sort_index(ascending=False).head(50), width="stretch")
             else:
                 st.warning("No credit data available.")
         except Exception as e:
             st.error(f"Error loading Credit data: {e}")
+
+def render_fed_futures_section():
+    """
+    Renders the Fed Funds Futures section.
+    """
+    st.subheader("🏛️ Fed Funds Futures")
+    with st.spinner("Fetching Fed Futures data..."):
+        try:
+            fig = plot_ff()
+            st.plotly_chart(fig, width="stretch")
+        except Exception as e:
+            st.error(f"Error loading Fed Futures data: {e}")
 
 def render_calendar_section(days_ahead, show_important):
     """
@@ -141,7 +153,7 @@ def render_calendar_section(days_ahead, show_important):
                     "release_id": "Series ID"
                 },
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 height=400 # Fixed height prevents vibration
             )
         else:
@@ -166,13 +178,16 @@ def main():
         st.title("FBU Macro Dashboard")
 
         # C. Market Data Tabs (Clean layout)
-        tab_rates, tab_credit = st.tabs(["Yields & Curve", "Credit Spreads"])
+        tab_rates, tab_credit, tab_fed_futures = st.tabs(["Yields & Curve", "Credit Spreads", "Fed Funds Futures"])
 
         with tab_rates:
             render_treasury_section()
         
         with tab_credit:
             render_credit_section()
+
+        with tab_fed_futures:
+            render_fed_futures_section()
 
         # D. Economic Calendar
         render_calendar_section(days_ahead, show_important)

@@ -1,10 +1,14 @@
 import ssl
+from matplotlib.dates import relativedelta
+from matplotlib.dates import relativedelta
 import pandas as pd
 import requests
 import streamlit as st
+import datetime
 from datetime import date, timedelta
 from fredapi import Fred
 import yfinance as yf
+from dateutil.relativedelta import relativedelta
 ssl._create_default_https_context = ssl._create_unverified_context
 
 @st.cache_data(ttl=3600)
@@ -137,3 +141,52 @@ def get_earnings_dates():
     return df[['Symbol', 'Company', 'Event Name', 'Earnings Date', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']]
 
 
+def get_fed_futures_data(months_out=12):
+
+    month_codes = {
+        1: 'F', 2: 'G', 3: 'H', 4: 'J', 5: 'K', 6: 'M',
+        7: 'N', 8: 'Q', 9: 'U', 10: 'V', 11: 'X', 12: 'Z'
+    }
+    
+    today = datetime.date.today()
+    data_list = []
+
+    # Loop for current month + N months out
+    for i in range(months_out + 1):
+        target_date = today + relativedelta(months=+i)
+        m_code = month_codes[target_date.month]
+        y_str = str(target_date.year)[-2:]
+        ticker = f"ZQ{m_code}{y_str}.CBT"
+
+        try:
+            # Get recent data
+            ticker_obj = yf.Ticker(ticker)
+            df = ticker_obj.history(period="5d")
+            
+            if not df.empty:
+                last_price = df['Close'].iloc[-1]
+                implied_rate = 100 - last_price
+                
+                data_list.append({
+                    'Date': target_date,  # Keep as datetime object for sorting/plotting
+                    'Month_Str': target_date.strftime('%b %Y'),
+                    'Ticker': ticker,
+                    'Price': last_price,
+                    'Implied_Rate': implied_rate
+                })
+        except Exception:
+            continue
+
+    df_results = pd.DataFrame(data_list)
+    
+    if df_results.empty:
+        return pd.DataFrame()
+
+    # Define Spot Rate (Front month proxy)
+    spot_rate = df_results.iloc[0]['Implied_Rate']
+    
+    # Calculate Cuts (Positive = Cuts, Negative = Hikes)
+    df_results['Delta_vs_Spot'] = spot_rate - df_results['Implied_Rate']
+    df_results['Cuts_Priced_In'] = df_results['Delta_vs_Spot'] / 0.25
+    
+    return df_results

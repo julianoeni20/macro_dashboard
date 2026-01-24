@@ -1,6 +1,7 @@
-from data import get_us_yield
+from data import get_us_yield, get_fed_futures_data
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 def us_treasury_plots():
     import pandas as pd
@@ -120,4 +121,52 @@ def credit_spread_plots(df):
         height=500
     )
     
+    return fig
+
+def plot_ff():
+
+    df = get_fed_futures_data()
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # 1. Bar Chart: Cuts Priced In (Left Axis)
+    fig.add_trace(
+        go.Bar(
+            x=df['Month_Str'],
+            y=df['Cuts_Priced_In'],
+            name="Cuts Priced In (vs Spot)",
+            marker_color='rgba(55, 83, 109, 0.6)', # Muted Blue
+            hovertemplate="%{y:.1f} Cuts<extra></extra>"
+        ),
+        secondary_y=False,
+    )
+
+    # 2. Line Chart: Implied Rate (Right Axis)
+    fig.add_trace(
+        go.Scatter(
+            x=df['Month_Str'],
+            y=df['Implied_Rate'],
+            name="Implied Rate (%)",
+            mode='lines+markers',
+            marker=dict(size=8, color='#d62728'), # Red
+            line=dict(width=3),
+            hovertemplate="%{y:.2f}%<extra></extra>"
+        ),
+        secondary_y=True,
+    )
+
+    # Layout details
+    current_spot = df.iloc[0]['Implied_Rate']
+    
+    fig.update_layout(
+        title=f"Market Implied Rate Path (Spot Proxy: {current_spot:.2f}%)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified"
+    )
+
+    # Axis Titles
+    fig.update_yaxes(title_text="Total Cuts (25bps)", secondary_y=False)
+    fig.update_yaxes(title_text="Implied Rate (%)", secondary_y=True)
+    fig.update_xaxes(title_text="Contract Month")
+
     return fig
