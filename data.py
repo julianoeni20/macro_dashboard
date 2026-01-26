@@ -12,7 +12,6 @@ from dateutil.relativedelta import relativedelta
 ssl._create_default_https_context = ssl._create_unverified_context
 
 @st.cache_data(ttl=3600)
-
 def get_us_yield(lookback):
 
     fred_key = st.secrets["fredapikey"]
@@ -50,6 +49,7 @@ IMPORTANT_KEYWORDS = [
     "Beige Book"
 ]
 
+@st.cache_data(ttl=3600)
 def get_upcoming_releases(api_key, days_ahead=7, only_important=True):
     """
     Fetches upcoming releases and optionally filters for high-impact events.
@@ -95,7 +95,9 @@ def get_upcoming_releases(api_key, days_ahead=7, only_important=True):
     except Exception as e:
         print(f"FRED API Error: {e}")
         return pd.DataFrame()
-    
+
+
+@st.cache_data(ttl=3600)
 def get_us_credit(lookback=1500):
     """
     Fetches ICE BofA Option-Adjusted Spreads (OAS).
@@ -126,7 +128,8 @@ def get_us_credit(lookback=1500):
     except Exception as e:
         st.error(f"Error fetching credit data: {e}")
         return pd.DataFrame()
-    
+
+@st.cache_data(ttl=3600)    
 def get_earnings_dates():
 
     calendars = yf.Calendars()
@@ -140,8 +143,9 @@ def get_earnings_dates():
 
     return df[['Symbol', 'Company', 'Event Name', 'Earnings Date', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']]
 
-
+@st.cache_data(ttl=3600)
 def get_fed_futures_data(months_out=12):
+
 
     month_codes = {
         1: 'F', 2: 'G', 3: 'H', 4: 'J', 5: 'K', 6: 'M',

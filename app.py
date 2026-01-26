@@ -4,7 +4,7 @@ import pandas as pd
 # Local Imports
 # Ensure you import get_us_credit from data
 from data import get_upcoming_releases, get_us_credit, get_earnings_dates
-from plots import us_treasury_plots, credit_spread_plots, plot_ff
+from plots import us_treasury_plots, credit_spread_plots, plot_ff, plot_indexes
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(
@@ -167,6 +167,26 @@ def render_calendar_section(days_ahead, show_important):
     except Exception as e:
         st.error(f"Calendar Error: {e}")
 
+def render_prices():
+    """
+    Renders the Index Prices tab. Logic is fully encapsulated in plots.py.
+    """
+    st.divider()
+    st.subheader("📊 Global Market Index Prices")
+
+    with st.spinner("Fetching latest market prices..."):
+        try:
+            # Simply call the function; it handles the list and the download
+            fig = plot_indexes()
+            
+            if fig:
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.error("Failed to retrieve market data. Please check your connection.")
+                
+        except Exception as e:
+            st.error(f"Error loading Index Prices: {e}")
+
 # --- 4. MAIN APP LOGIC ---
 
 def main():
@@ -178,7 +198,7 @@ def main():
         st.title("FBU Macro Dashboard")
 
         # C. Market Data Tabs (Clean layout)
-        tab_rates, tab_credit, tab_fed_futures = st.tabs(["Yields & Curve", "Credit Spreads", "Fed Funds Futures"])
+        tab_rates, tab_credit, tab_fed_futures, tab_prices = st.tabs(["Yields & Curve", "Credit Spreads", "Fed Funds Futures", "Prices"])
 
         with tab_rates:
             render_treasury_section()
@@ -189,6 +209,8 @@ def main():
         with tab_fed_futures:
             render_fed_futures_section()
 
+        with tab_prices:    
+            render_prices()
         # D. Economic Calendar
         render_calendar_section(days_ahead, show_important)
 

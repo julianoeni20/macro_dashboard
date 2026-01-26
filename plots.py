@@ -2,6 +2,8 @@ from data import get_us_yield, get_fed_futures_data
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import yfinance as yf
+import math
 
 def us_treasury_plots():
     import pandas as pd
@@ -169,4 +171,72 @@ def plot_ff():
     fig.update_yaxes(title_text="Implied Rate (%)", secondary_y=True)
     fig.update_xaxes(title_text="Contract Month")
 
+    return fig
+
+def plot_indexes():
+    """
+    Fetches data and creates a clean grid of candlestick charts.
+    The asset list is embedded here for a cleaner app.py.
+    """
+    # Asset list embedded inside the function
+    macro_assets = {
+        "^GSPC": "S&P 500", 
+        "^IXIC": "Nasdaq 100", 
+        "^FTSE": "FTSE 100",
+        "^STOXX50E": "Euro Stoxx 50", 
+        "URTH": "MSCI World", 
+        "GC=F": "Gold",
+        "SI=F": "Silver", 
+        "GBPUSD=X": "GBP/USD", 
+        "EURUSD=X": "EUR/USD", 
+        "USDJPY=X": "USD/JPY"
+    }
+
+    tickers = list(macro_assets.keys())
+    
+    # Download data directly within the function
+    # We use 1y period for a good historical look at the IC meeting
+    data = yf.download(tickers, period="1y", interval="1d", progress=False)
+    
+    if data.empty:
+        return None
+
+    cols = 2
+    rows = math.ceil(len(tickers) / cols)
+    
+    fig = make_subplots(
+        rows=rows, cols=cols, 
+        subplot_titles=[macro_assets[t] for t in tickers],
+        vertical_spacing=0.08, 
+        horizontal_spacing=0.05
+    )
+
+    for i, ticker in enumerate(tickers):
+        curr_row = (i // cols) + 1
+        curr_col = (i % cols) + 1
+        
+        try:
+            df = data.xs(ticker, axis=1, level=1).dropna()
+            
+            fig.add_trace(
+                go.Candlestick(
+                    x=df.index,
+                    open=df['Open'], high=df['High'],
+                    low=df['Low'], close=df['Close'],
+                    name=macro_assets[ticker],
+                    showlegend=False
+                ),
+                row=curr_row, col=curr_col
+            )
+        except Exception:
+            continue
+
+    # UI Cleanup: No messy sliders and a professional dark theme
+    fig.update_xaxes(rangeslider_visible=False)
+    fig.update_layout(
+        template="plotly_dark",
+        height=300 * rows,
+        margin=dict(t=50, b=20, l=20, r=20),
+        font=dict(size=10)
+    )
     return fig
